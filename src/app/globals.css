@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+/* Token warna: lihat DESIGN.md → Color Tokens. */
+:root {
+  color-scheme: light;
+  --paper: #f3f4f1;
+  --surface: #fbfbfa;
+  --ink: #15191b;
+  --ink-soft: #454d52;
+  --muted: #5e676c;
+  --line: #d9ddd8;
+  --line-strong: #858d88;
+  --accent: #1f5c4e;
+  --accent-ink: #f5f8f6;
+  --accent-wash: #e2ece7;
+  --danger: #a1352a;
+  --danger-wash: #f6e7e4;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --paper: #101312;
+    --surface: #171b1a;
+    --ink: #e7ecea;
+    --ink-soft: #bcc5c1;
+    --muted: #94a09b;
+    --line: #2a302e;
+    --line-strong: #68736e;
+    --accent: #7cc7af;
+    --accent-ink: #0d1a16;
+    --accent-wash: #1a2b26;
+    --danger: #f08f80;
+    --danger-wash: #2c1a17;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-wash: var(--accent-wash);
+  --color-danger: var(--danger);
+  --color-danger-wash: var(--danger-wash);
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --radius-control: 10px;
+  --radius-overlay: 14px;
+}
+
+html {
+  background: var(--paper);
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: 6rem;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  font-feature-settings: "ss01" off;
+}
+
+@media (pointer: fine) {
+  html {
+    overscroll-behavior: none;
+  }
+}
+
+::selection {
+  background: var(--accent-wash);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p,
+li,
+dd,
+legend {
+  text-wrap: pretty;
+}
+
+/* Transisi masuk setiap langkah. */
+@media (prefers-reduced-motion: no-preference) {
+  .step-enter {
+    animation: step-enter 220ms var(--ease-out) both;
+  }
+
+  @keyframes step-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  dialog[open] {
+    animation: dialog-in 160ms var(--ease-out) both;
+  }
+
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+dialog::backdrop {
+  background: rgb(10 16 14 / 0.45);
+}
+
+/* Native datalist/select tetap terbaca di mode gelap Windows. */
+input,
+select,
+textarea {
+  background-color: var(--surface);
+  color: var(--ink);
+}
