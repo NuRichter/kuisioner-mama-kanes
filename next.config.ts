@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  serverExternalPackages: ["@react-pdf/renderer", "exceljs", "pptxgenjs"],
+  // Font PDF dibaca dari disk saat runtime; sertakan dalam bundle fungsi.
+  outputFileTracingIncludes: { "/api/laporan/[format]": ["./assets/fonts/*.ttf"] },
   async headers() {
     return [
       {
