@@ -78,7 +78,7 @@ export async function buildDeck(a: Analysis): Promise<Buffer> {
       ["Tersimpan", String(a.totals.stored)],
       ["Bersih", String(a.totals.clean)],
       ["Versi CD : DC", `${a.versions.CD} : ${a.versions.DC}`],
-      ["Median durasi", `${fmt(a.durations.median, 1)} menit`],
+      ["Median durasi", Number.isFinite(a.durations.median) ? `${fmt(a.durations.median, 1)} menit` : "-"],
     ];
     facts.forEach(([k, v], i) => {
       s.addText(k, { x: 9.6, y: 1.9 + i * 1.2, w: 3, h: 0.3, fontFace: FONT, fontSize: 11, color: C.muted, margin: 0 });

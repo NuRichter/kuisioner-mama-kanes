@@ -246,7 +246,7 @@ export function Dashboard({ a }: { a: Analysis }) {
                 <Stat label="Jawaban tersimpan" value={a.totals.stored} sub={a.options.version !== "all" ? `${a.totals.inVersion} pada ${a.options.version}` : undefined} />
                 <Stat label="Dianalisis di dasbor ini" value={n} />
                 <Stat label="Versi CD : DC" value={`${a.versions.CD} : ${a.versions.DC}`} />
-                <Stat label="Median durasi" value={`${fmt(a.durations.median, 1)} menit`} />
+                <Stat label="Median durasi" value={Number.isFinite(a.durations.median) ? `${fmt(a.durations.median, 1)} menit` : "-"} />
               </dl>
             </div>
 

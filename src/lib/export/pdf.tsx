@@ -180,7 +180,7 @@ function Report({ a }: { a: Analysis }) {
               ["Tersimpan", String(a.totals.stored)],
               ["Dianalisis", String(n)],
               ["Versi CD : DC", `${a.versions.CD} : ${a.versions.DC}`],
-              ["Median durasi", `${fmt(a.durations.median, 1)} menit`],
+              ["Median durasi", Number.isFinite(a.durations.median) ? `${fmt(a.durations.median, 1)} menit` : "-"],
             ].map(([k, v]) => (
               <View key={k}>
                 <Text style={s.small}>{k}</Text>
