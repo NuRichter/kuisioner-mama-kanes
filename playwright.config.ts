@@ -27,6 +27,10 @@ export default defineConfig({
         command: "npx next start -p 3100",
         url: baseURL,
         reuseExistingServer: true,
-        env: { LOCAL_RESPONSE_STORE: "1", EXPORT_PASSWORD: "uji-lokal-kata-sandi" },
+        env: {
+          LOCAL_RESPONSE_STORE: "1",
+          RESEARCHER_PASSWORD: "uji-lokal-kata-sandi",
+          SESSION_SECRET: "sesi-lokal-hanya-untuk-pengujian-0123456789",
+        },
       },
 });

@@ -227,9 +227,10 @@ test("tidak ada gulir horizontal pada lebar 320px", async ({ page }) => {
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
-test("API menolak data tidak lengkap dan kata sandi ekspor yang salah", async ({ request }) => {
+test("API menolak data tidak lengkap dan unduhan tanpa sesi peneliti", async ({ request }) => {
   const res = await request.post("/api/responses", { data: { formVersion: "CD", startedAt: new Date().toISOString(), answers: {} } });
   expect(res.status()).toBe(422);
-  const exp = await request.post("/api/export", { data: { password: "salah" } });
-  expect(exp.status()).toBe(401);
+  for (const format of ["csv", "xlsx", "pdf", "pptx"]) {
+    expect((await request.get(`/api/laporan/${format}`)).status()).toBe(401);
+  }
 });
