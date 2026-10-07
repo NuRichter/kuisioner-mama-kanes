@@ -16,6 +16,16 @@
   --danger: #a1352a;
   --danger-wash: #f6e7e4;
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  /* Grafik (divalidasi dengan validator palet dataviz): DESIGN.md → Data Visualization. */
+  --viz-1: #0f7a5a;
+  --viz-2: #c76a12;
+  --viz-grid: #e3e6e1;
+  --viz-axis: #b9bfba;
+  --lk-1: #b0482f;
+  --lk-2: #e0a088;
+  --lk-3: #cfd3cd;
+  --lk-4: #80bba8;
+  --lk-5: #0f7a5a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -33,6 +43,15 @@
     --accent-wash: #1a2b26;
     --danger: #f08f80;
     --danger-wash: #2c1a17;
+    --viz-1: #2f9c79;
+    --viz-2: #cc7a22;
+    --viz-grid: #232927;
+    --viz-axis: #3a423f;
+    --lk-1: #d9775a;
+    --lk-2: #7a3a28;
+    --lk-3: #3a403d;
+    --lk-4: #1d5c4a;
+    --lk-5: #3fae8a;
   }
 }
 
@@ -49,6 +68,10 @@
   --color-accent-wash: var(--accent-wash);
   --color-danger: var(--danger);
   --color-danger-wash: var(--danger-wash);
+  --color-viz-1: var(--viz-1);
+  --color-viz-2: var(--viz-2);
+  --color-viz-grid: var(--viz-grid);
+  --color-viz-axis: var(--viz-axis);
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --radius-control: 10px;
   --radius-overlay: 14px;
