@@ -202,6 +202,46 @@ Verified at 320, 375, 390, 430, 768, 1024, 1280 and 1440px.
 - No em dashes in UI copy. Copy is plain Indonesian, second person, active voice.
 - No author profile, no institutional badge. The author appears once, in the footer.
 
+## Researcher Area
+
+`/peneliti` is a password-protected workspace for the researcher, styled as a research notebook rather than an admin dashboard.
+
+- **Login:** one password field, specific error copy, 8-hour signed `httpOnly` session cookie.
+- **Structure:** a single filter row (form version, sample, longstring threshold) scopes every chart and every download. The filters live in the URL (`?versi=DC&sampel=semua&longstring=12`), so views can be bookmarked. On desktop the row is sticky; on phones it scrolls away.
+- **Hero:** the clean-sample count beside a *target ruler* with markers at 300, 400 and 500 and a 650 to 700 target band (researcher note 7). It echoes the respondent-side scale ruler.
+- **Chapters:** Ringkasan dan insight, Pengumpulan, Screening, Profil, Konstruk dan butir, Manusia vs mesin, Kepercayaan dan risiko, Hubungan antarkonstruk, Efek urutan C dan D, Data jawaban. A sticky chapter rail appears from 1024px.
+- **Insights:** deterministic sentences built from the computed numbers. Each states its basis (a researcher note, the test used, or the threshold), carries a tone with icon and label (Aman, Catatan, Perlu perhatian), and never claims causation.
+- **No KPI-card grid.** Stats sit in a definition list next to the hero; chapters are separated by hairlines and headings, not boxes.
+
+## Data Visualization
+
+Charts are server-rendered SVG/HTML with no chart library and no client JavaScript. Every value is reachable without hover (direct labels, tables, or a "Lihat tabel" disclosure). Native `<title>` tooltips add detail on hover.
+
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `--viz-1` | `#0F7A5A` | `#2F9C79` | Single-series marks (pine, re-stepped from the brand accent to clear the chroma floor) |
+| `--viz-2` | `#C76A12` | `#CC7A22` | Second series, or "at or above threshold" emphasis |
+| `--lk-1` to `--lk-5` | `#B0482F` `#E0A088` `#CFD3CD` `#80BBA8` `#0F7A5A` | `#D9775A` `#7A3A28` `#3A403D` `#1D5C4A` `#3FAE8A` | Diverging Likert scale: brick (disagree), gray midpoint (neutral), pine (agree) |
+| `--viz-grid` / `--viz-axis` | `#E3E6E1` / `#B9BFBA` | `#232927` / `#3A423F` | Hairline grid and baseline |
+
+The categorical pair passes the dataviz palette validator in both modes (lightness band, chroma floor, CVD separation, contrast). Each Likert arm passes as an ordinal ramp in both modes.
+
+Rules:
+- One axis per chart. Cumulative collection is one line with target reference lines, never a dual axis.
+- Bars have rounded data ends; stacked Likert segments are separated by 2px gaps.
+- Heatmaps show the lower triangle only. Correlation is diverging (brick to pine); HTMT is sequential with a danger outline at 0.85 or above.
+- Scatter plots on 1 to 5 scales use deterministic jitter so discrete scores do not stack.
+- Grid containers use `minmax(0, 1fr)` columns so wide tables scroll inside their own container instead of widening the page.
+
+## Report Exports
+
+| Format | Contents |
+|---|---|
+| CSV | Raw or clean rows, UTF-8 with BOM, formula-injection safe |
+| Excel | Summary and insights, raw and clean data, codebook, constructs, items, correlation, HTMT, additional tests, profile |
+| PDF | A4 editorial report in Geist (embedded): cover with target ruler, insights, screening, constructs, item distributions, human vs machine, correlation and HTMT matrices, profile |
+| PowerPoint | 16:9 deck with native, editable charts in Calibri (PowerPoint cannot embed Geist) |
+
 ## Do
 
 - Keep the statement text the largest thing on a Likert page after the section title.
