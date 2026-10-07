@@ -2,7 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  serverExternalPackages: ["@react-pdf/renderer", "exceljs", "pptxgenjs"],
+  // pptxgenjs sengaja dibundel: build ESM-nya tidak dapat dimuat langsung oleh Node 24 di Vercel.
+  serverExternalPackages: ["@react-pdf/renderer", "exceljs"],
   // Font PDF dibaca dari disk saat runtime; sertakan dalam bundle fungsi.
   outputFileTracingIncludes: { "/api/laporan/[format]": ["./assets/fonts/*.ttf"] },
   async headers() {
