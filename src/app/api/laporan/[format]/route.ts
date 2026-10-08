@@ -1,6 +1,6 @@
 import { analyze } from "@/lib/analytics/analyze";
 import { parseOptions } from "@/lib/analytics/options";
-import { hasSession } from "@/lib/auth/session";
+import { hasSession, verifyDownloadToken } from "@/lib/auth/session";
 import { toCsv } from "@/lib/export/csv";
 import { loadResponses } from "@/lib/storage/responses";
 
@@ -17,9 +17,16 @@ type Format = keyof typeof types;
 export async function GET(request: Request, ctx: RouteContext<"/api/laporan/[format]">) {
   const { format } = await ctx.params;
   if (!(format in types)) return Response.json({ error: "Format tidak dikenal." }, { status: 404 });
-  if (!(await hasSession())) return Response.json({ error: "Sesi peneliti tidak ditemukan. Masuk kembali di /peneliti." }, { status: 401 });
-
   const url = new URL(request.url);
+  // Izin dari cookie sesi, atau dari token unduhan untuk download manager yang tidak membawa cookie.
+  const allowed = verifyDownloadToken(url.searchParams.get("t"), format) || (await hasSession());
+  if (!allowed) {
+    // 403 (bukan 401) agar browser dan download manager tidak memunculkan kotak username/password.
+    return new Response(
+      "Tautan unduhan tidak berlaku atau sudah kedaluwarsa (30 menit). Buka kembali /peneliti, lalu unduh ulang dari dasbor.",
+      { status: 403, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } },
+    );
+  }
   const options = parseOptions(url.searchParams);
 
   try {

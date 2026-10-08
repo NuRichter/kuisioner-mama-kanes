@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, request as apiRequest, test } from "@playwright/test";
 import { isRemote } from "./helpers";
 
 const password = isRemote ? process.env.E2E_RESEARCHER_PASSWORD : "uji-lokal-kata-sandi";
@@ -33,13 +33,16 @@ test.describe("dasbor peneliti", () => {
       PDF: /application\/pdf/,
       PowerPoint: /presentationml/,
     };
+    // Tanpa cookie, seperti download manager (IDM) yang mengulang permintaan sendiri.
+    const cookieless = await apiRequest.newContext({ baseURL: test.info().project.use.baseURL });
     for (const [label, type] of Object.entries(expected)) {
       const href = await page.getByRole("link", { name: label }).getAttribute("href");
-      const res = await page.request.get(href!);
+      const res = await cookieless.get(href!);
       expect(res.status(), label).toBe(200);
       expect(res.headers()["content-type"], label).toMatch(type);
       expect((await res.body()).length, label).toBeGreaterThan(200);
     }
+    await cookieless.dispose();
 
     // Filter lewat URL tercermin pada ringkasan.
     await page.goto("/peneliti?versi=DC&sampel=semua&longstring=12");

@@ -51,6 +51,33 @@ export function verifySessionToken(token: string | undefined, now = Date.now()):
   return Number(payload) > now;
 }
 
+const DOWNLOAD_MINUTES = 30;
+
+/**
+ * Token unduhan bertanda tangan, terikat pada satu format dan berlaku singkat.
+ * Download manager (mis. IDM) mengulang permintaan tanpa cookie browser,
+ * sehingga tautan unduhan perlu membawa izinnya sendiri. Awalan "dl:" membuat
+ * token ini tidak pernah lolos sebagai token sesi.
+ */
+export function createDownloadToken(format: string, now = Date.now()): string {
+  const key = secret();
+  if (!key) throw new Error("SESSION_SECRET belum dikonfigurasi.");
+  const payload = `dl:${format}:${now + DOWNLOAD_MINUTES * 60_000}`;
+  return `${Buffer.from(payload).toString("base64url")}.${sign(payload, key)}`;
+}
+
+export function verifyDownloadToken(token: string | null, format: string, now = Date.now()): boolean {
+  const key = secret();
+  if (!token || !key) return false;
+  const [encoded, signature] = token.split(".");
+  if (!encoded || !signature) return false;
+  const payload = Buffer.from(encoded, "base64url").toString();
+  const expected = sign(payload, key);
+  if (expected.length !== signature.length || !timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) return false;
+  const [prefix, tokenFormat, exp] = payload.split(":");
+  return prefix === "dl" && tokenFormat === format && Number(exp) > now;
+}
+
 export async function hasSession(): Promise<boolean> {
   const jar = await cookies();
   return verifySessionToken(jar.get(SESSION_COOKIE)?.value);

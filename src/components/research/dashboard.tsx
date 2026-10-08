@@ -16,6 +16,7 @@ import type { Analysis, Insight, ScreenVerdict } from "@/lib/analytics/analyze";
 import { describeOptions, optionsToQuery } from "@/lib/analytics/options";
 import { fmt, pct, pLabel } from "@/lib/analytics/stats";
 import { logout } from "@/app/peneliti/actions";
+import { createDownloadToken } from "@/lib/auth/session";
 
 const chapters = [
   { id: "ringkasan", label: "Ringkasan dan insight" },
@@ -148,7 +149,13 @@ function ItemTable({ c }: { c: Analysis["constructStats"][number] }) {
 export function Dashboard({ a }: { a: Analysis }) {
   const n = a.totals.analyzed;
   const query = optionsToQuery(a.options);
-  const exportQuery = query ? `${query}&` : "?";
+  // Setiap tautan membawa token unduhan bertanda tangan (berlaku 30 menit).
+  const download = (format: string, extra?: string) => {
+    const params = new URLSearchParams(query.slice(1));
+    if (extra) params.set("isi", extra);
+    params.set("t", createDownloadToken(format));
+    return `/api/laporan/${format}?${params.toString()}`;
+  };
   const generated = new Intl.DateTimeFormat("id-ID", { dateStyle: "long", timeStyle: "short", timeZone: "Asia/Jakarta" }).format(new Date(a.generatedAt));
   const durationBins = Array.from({ length: 31 }, (_, m) => ({
     label: m === 30 ? "30+" : String(m),
@@ -205,11 +212,11 @@ export function Dashboard({ a }: { a: Analysis }) {
           <nav aria-label="Unduhan" className="flex flex-wrap items-center gap-1.5 text-sm">
             <span className="mr-1 text-xs font-medium text-muted">Unduh</span>
             {[
-              { href: `/api/laporan/csv${exportQuery}isi=semua`, label: "CSV mentah" },
-              { href: `/api/laporan/csv${exportQuery}isi=bersih`, label: "CSV bersih" },
-              { href: `/api/laporan/xlsx${query}`, label: "Excel" },
-              { href: `/api/laporan/pdf${query}`, label: "PDF" },
-              { href: `/api/laporan/pptx${query}`, label: "PowerPoint" },
+              { href: download("csv", "semua"), label: "CSV mentah" },
+              { href: download("csv", "bersih"), label: "CSV bersih" },
+              { href: download("xlsx"), label: "Excel" },
+              { href: download("pdf"), label: "PDF" },
+              { href: download("pptx"), label: "PowerPoint" },
             ].map((d) => (
               <a key={d.label} href={d.href} download className="inline-flex h-10 items-center gap-1.5 rounded-[8px] border border-line-strong bg-surface px-3 font-medium text-ink hover:border-ink">
                 <Download aria-hidden="true" className="size-3.5" />

@@ -231,6 +231,10 @@ test("API menolak data tidak lengkap dan unduhan tanpa sesi peneliti", async ({ 
   const res = await request.post("/api/responses", { data: { formVersion: "CD", startedAt: new Date().toISOString(), answers: {} } });
   expect(res.status()).toBe(422);
   for (const format of ["csv", "xlsx", "pdf", "pptx"]) {
-    expect((await request.get(`/api/laporan/${format}`)).status()).toBe(401);
+    const res = await request.get(`/api/laporan/${format}`);
+    // 403 tanpa WWW-Authenticate: tidak memicu kotak username/password.
+    expect(res.status()).toBe(403);
+    expect(res.headers()["www-authenticate"]).toBeUndefined();
+    expect((await request.get(`/api/laporan/${format}?t=palsu.palsu`)).status()).toBe(403);
   }
 });
