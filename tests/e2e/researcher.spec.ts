@@ -17,7 +17,18 @@ test.describe("dasbor peneliti", () => {
     await page.getByRole("button", { name: "Masuk" }).click();
     await expect(page.getByText("Kata sandi tidak cocok", { exact: false })).toBeVisible();
 
-    await page.getByLabel("Kata sandi peneliti").fill(password!);
+    // Tampilkan kata sandi: tipe berganti dan kursor tetap di akhir teks.
+    const input = page.getByLabel("Kata sandi peneliti");
+    await input.fill("abc");
+    await page.getByRole("button", { name: "Tampilkan kata sandi" }).click();
+    await expect(input).toHaveAttribute("type", "text");
+    await expect(page.getByRole("button", { name: "Tampilkan kata sandi" })).toHaveAttribute("aria-pressed", "true");
+    await input.pressSequentially("d");
+    await expect(input).toHaveValue("abcd");
+    await page.getByRole("button", { name: "Tampilkan kata sandi" }).click();
+    await expect(input).toHaveAttribute("type", "password");
+
+    await input.fill(password!);
     await page.getByRole("button", { name: "Masuk" }).click();
     await expect(page.getByRole("heading", { name: "Dasbor peneliti", exact: true })).toBeVisible({ timeout: 30_000 });
 
