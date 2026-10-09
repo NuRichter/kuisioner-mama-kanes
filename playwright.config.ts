@@ -29,7 +29,12 @@ export default defineConfig({
         reuseExistingServer: true,
         env: {
           LOCAL_RESPONSE_STORE: "1",
+          // Khusus pengujian: kata sandi teks biasa diizinkan dan hash lokal (.env.local) dikosongkan.
           RESEARCHER_PASSWORD: "uji-lokal-kata-sandi",
+          RESEARCHER_PASSWORD_HASH: "",
+          ALLOW_PLAINTEXT_PASSWORD: "1",
+          // Uji otomatis mengisi kuesioner dalam hitungan detik.
+          FORM_MIN_SECONDS: "0",
           SESSION_SECRET: "sesi-lokal-hanya-untuk-pengujian-0123456789",
         },
       },

@@ -25,7 +25,8 @@ src/lib/validation/            Per-section validation (client) and full submissi
 src/lib/scoring/screening.ts   Attention-check and longstring indicators (researcher only)
 src/data/research-map.ts       Construct map, sample targets, thresholds (researcher notes, server only)
 src/lib/analytics/             Statistics, analysis model, insights, dashboard filters
-src/lib/auth/session.ts        Researcher password check and signed session cookie
+src/lib/auth/session.ts        scrypt password check, signed sessions and download tokens
+src/lib/security/              Key derivation, encryption, form tokens, rate limits, request checks, audit
 src/lib/export/                CSV, codebook, Excel, PDF and PowerPoint builders
 src/lib/storage/responses.ts   Vercel Blob (production) or .data/ (local)
         │
@@ -77,7 +78,7 @@ The app is deployed on Vercel.
 
 1. Create or link the project: `vercel link`.
 2. Create a Blob store and connect it to the project (this provides `BLOB_READ_WRITE_TOKEN`).
-3. Set `RESEARCHER_PASSWORD` (12 or more characters), `SESSION_SECRET` (32 or more random characters) and, optionally, `CONTACT_EMAIL`.
+3. Set `RESEARCHER_PASSWORD_HASH` (from `scripts/hash-password.mts`), `SESSION_SECRET` (32 or more random characters), `DATA_ENCRYPTION_KEY` (32 random bytes, base64) and, optionally, `CONTACT_EMAIL`.
 4. Deploy: `vercel deploy --prod`.
 
 ## Environment variables
@@ -85,10 +86,40 @@ The app is deployed on Vercel.
 | Variable | Required | Purpose |
 |---|---|---|
 | `BLOB_READ_WRITE_TOKEN` | Production | Private Vercel Blob store for responses |
-| `RESEARCHER_PASSWORD` | Production | Password for the researcher dashboard at `/peneliti` |
+| `RESEARCHER_PASSWORD_HASH` | Production | scrypt hash of the researcher password (`scripts/hash-password.mts`) |
+| `DATA_ENCRYPTION_KEY` | Production | 32-byte base64 key that encrypts every stored response (AES-256-GCM) |
+| `DATA_ENCRYPTION_KEY_PREVIOUS` | No | Previous key, kept only while rotating |
+| `RESEARCHER_PASSWORD` | Local only | Plain-text password for local development (ignored in production) |
 | `SESSION_SECRET` | Production | Key that signs the researcher session cookie (32+ characters) |
 | `CONTACT_EMAIL` | No | Researcher contact address shown on the information page |
 | `LOCAL_RESPONSE_STORE` | No | Set to `1` to use `.data/` with `next start` locally |
+
+## Security
+
+The interface and flow are unchanged; the protections below run on the server.
+
+| Layer | Protection |
+|---|---|
+| Data at rest | Every response is encrypted with AES-256-GCM (`DATA_ENCRYPTION_KEY`) before it is written to the private Blob store. Production refuses to store a response without encryption. `DATA_ENCRYPTION_KEY_PREVIOUS` allows key rotation. |
+| Submission integrity | A server-signed form token is issued when the respondent consents. The server takes the start time from the token (duration cannot be forged), rejects submissions less than 60 seconds after consent, and uses the token ID as the storage key, so a token yields exactly one response (resubmissions are idempotent). |
+| Request checks | Write endpoints accept only same-origin `application/json` requests (Origin and Sec-Fetch-Site), with body size and field-count limits and strict Zod validation. |
+| Rate limits | Per hashed IP: 120 form tokens and 40 submissions per hour (generous for campus NAT), 120 report downloads per hour. Counters live in the private Blob store so they hold across serverless instances. |
+| Researcher login | Password stored only as a scrypt hash (`RESEARCHER_PASSWORD_HASH`). 5 failed attempts per IP or 30 globally within 15 minutes lock login for the rest of the window; locked attempts never check the password. |
+| Sessions | HMAC-signed tokens with random ID, issue and expiry times, and a password fingerprint, so changing the password ends every session. `__Host-` cookie, `HttpOnly`, `Secure`, `SameSite=Strict`, 8 hours. Keys for sessions, downloads, form tokens and IP hashing are derived separately from `SESSION_SECRET` with HKDF. |
+| Downloads | Report links carry a 30-minute token bound to one format, so download managers work without cookies; invalid links get a plain 403 (no browser login prompt). |
+| Headers | Strict CSP (no eval, no external sources, no plugins, no framing), HSTS with preload, COOP and CORP same-origin, `nosniff`, Permissions-Policy, no `X-Powered-By`. Researcher and API routes add `no-store`, `noindex` and `no-referrer`. |
+| Audit | Logins (success, failure, lockout), logouts, downloads and rejected submissions are written to the server log and to `sistem/audit/` in the private store, with IPs only as keyed hashes. |
+| Dependencies | `npm audit --omit=dev` reports 0 vulnerabilities (patched `uuid` and `image-size` through `overrides`). |
+
+To change the researcher password:
+
+```bash
+node scripts/hash-password.mts "new password"   # prints RESEARCHER_PASSWORD_HASH
+```
+
+Set the printed value as `RESEARCHER_PASSWORD_HASH` and redeploy. Every existing session ends automatically.
+
+Keep a copy of `DATA_ENCRYPTION_KEY` in a password manager. Without it, stored responses cannot be decrypted.
 
 ## Project structure
 

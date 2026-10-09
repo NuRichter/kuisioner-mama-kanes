@@ -54,6 +54,7 @@ export function QuestionnaireApp({ contactEmail }: { contactEmail?: string }) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const viewKeyRef = useRef<string | null>(null);
+  const tokenRequest = useRef<Promise<string | null> | null>(null);
 
   const steps = useMemo(() => stepSequence(state.version), [state.version]);
   const stepIndex = steps.indexOf(state.step);
@@ -138,6 +139,23 @@ export function QuestionnaireApp({ contactEmail }: { contactEmail?: string }) {
     [section?.kind, state.answers],
   );
 
+  /** Minta token formulir dari server satu kali; dipakai saat persetujuan dan sebelum kirim. */
+  function ensureFormToken(): Promise<string | null> {
+    if (state.formToken) return Promise.resolve(state.formToken);
+    tokenRequest.current ??= fetch("/api/sesi", { method: "POST", headers: { "Content-Type": "application/json" } })
+      .then(async (res) => {
+        if (!res.ok) return null;
+        const { token } = (await res.json()) as { token?: string };
+        if (token) dispatch({ type: "token", token });
+        return token ?? null;
+      })
+      .catch(() => null)
+      .finally(() => {
+        tokenRequest.current = null;
+      });
+    return tokenRequest.current;
+  }
+
   function focusFirstError(fieldErrors: FieldErrors) {
     const first = Object.keys(fieldErrors)[0];
     requestAnimationFrame(() => {
@@ -166,6 +184,8 @@ export function QuestionnaireApp({ contactEmail }: { contactEmail?: string }) {
     }
     setErrors({});
     setAnnouncement("");
+    // Token diminta di latar belakang setelah responden setuju; tidak menunda perpindahan langkah.
+    if (state.step !== "intro" || state.answers.CONSENT === "1") void ensureFormToken();
     dispatch({ type: "advance", now: new Date().toISOString(), version: randomVersion() });
   }
 
@@ -194,10 +214,11 @@ export function QuestionnaireApp({ contactEmail }: { contactEmail?: string }) {
     setSubmitting(true);
     setSubmitError(null);
     try {
+      const formToken = await ensureFormToken();
       const res = await fetch("/api/responses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ formVersion: state.version, startedAt: state.startedAt, answers: state.answers }),
+        body: JSON.stringify({ formVersion: state.version, startedAt: state.startedAt ?? undefined, formToken: formToken ?? undefined, answers: state.answers }),
       });
       if (res.ok) {
         dispatch({ type: "submitted" });

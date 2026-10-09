@@ -228,8 +228,19 @@ test("tidak ada gulir horizontal pada lebar 320px", async ({ page }) => {
 });
 
 test("API menolak data tidak lengkap dan unduhan tanpa sesi peneliti", async ({ request }) => {
-  const res = await request.post("/api/responses", { data: { formVersion: "CD", startedAt: new Date().toISOString(), answers: {} } });
+  const origin = new URL(test.info().project.use.baseURL!).origin;
+  const data = { formVersion: "CD", answers: {} };
+  // Tanpa Origin (bukan dari halaman situs) atau dari situs lain: ditolak.
+  expect((await request.post("/api/responses", { data })).status()).toBe(403);
+  expect((await request.post("/api/responses", { data, headers: { Origin: "https://situs-lain.example" } })).status()).toBe(403);
+  expect((await request.post("/api/sesi", { headers: { Origin: "https://situs-lain.example" } })).status()).toBe(403);
+  // Dari situs sendiri tetapi tanpa token formulir: ditolak.
+  const res = await request.post("/api/responses", { data, headers: { Origin: origin } });
   expect(res.status()).toBe(422);
+  // Token formulir hanya diterbitkan untuk permintaan dari situs sendiri.
+  const sesi = await request.post("/api/sesi", { headers: { Origin: origin, "Content-Type": "application/json" } });
+  expect(sesi.status()).toBe(201);
+  expect((await sesi.json()).token).toMatch(/^[\w-]+\.[\w-]+$/);
   for (const format of ["csv", "xlsx", "pdf", "pptx"]) {
     const res = await request.get(`/api/laporan/${format}`);
     // 403 tanpa WWW-Authenticate: tidak memicu kotak username/password.
@@ -237,4 +248,19 @@ test("API menolak data tidak lengkap dan unduhan tanpa sesi peneliti", async ({ 
     expect(res.headers()["www-authenticate"]).toBeUndefined();
     expect((await request.get(`/api/laporan/${format}?t=palsu.palsu`)).status()).toBe(403);
   }
+});
+
+test("header keamanan terpasang", async ({ request }) => {
+  const home = await request.get("/");
+  const h = home.headers();
+  expect(h["content-security-policy"]).toContain("frame-ancestors 'none'");
+  expect(h["content-security-policy"]).toContain("object-src 'none'");
+  expect(h["x-frame-options"]).toBe("DENY");
+  expect(h["strict-transport-security"]).toContain("max-age=");
+  expect(h["cross-origin-opener-policy"]).toBe("same-origin");
+  expect(h["x-powered-by"]).toBeUndefined();
+  const researcher = await request.get("/peneliti");
+  expect(researcher.headers()["x-robots-tag"]).toContain("noindex");
+  expect(researcher.headers()["cache-control"]).toContain("no-store");
+  expect(researcher.headers()["referrer-policy"]).toBe("no-referrer");
 });

@@ -1,6 +1,11 @@
 import { analyze } from "@/lib/analytics/analyze";
 import { parseOptions } from "@/lib/analytics/options";
+import { headers } from "next/headers";
 import { hasSession, verifyDownloadToken } from "@/lib/auth/session";
+import { audit } from "@/lib/security/audit";
+import { hashIp } from "@/lib/security/crypto";
+import { hitLimit } from "@/lib/security/rate-limit";
+import { clientIp } from "@/lib/security/request";
 import { toCsv } from "@/lib/export/csv";
 import { loadResponses } from "@/lib/storage/responses";
 
@@ -19,8 +24,10 @@ export async function GET(request: Request, ctx: RouteContext<"/api/laporan/[for
   if (!(format in types)) return Response.json({ error: "Format tidak dikenal." }, { status: 404 });
   const url = new URL(request.url);
   // Izin dari cookie sesi, atau dari token unduhan untuk download manager yang tidak membawa cookie.
+  const ip = hashIp(clientIp(await headers()));
   const allowed = verifyDownloadToken(url.searchParams.get("t"), format) || (await hasSession());
   if (!allowed) {
+    await audit("unduh.ditolak", { format, ip });
     // 403 (bukan 401) agar browser dan download manager tidak memunculkan kotak username/password.
     return new Response(
       "Tautan unduhan tidak berlaku atau sudah kedaluwarsa (30 menit). Buka kembali /peneliti, lalu unduh ulang dari dasbor.",
@@ -28,6 +35,16 @@ export async function GET(request: Request, ctx: RouteContext<"/api/laporan/[for
     );
   }
   const options = parseOptions(url.searchParams);
+
+  // Laporan PDF/PPT berat untuk dibuat: batasi agar tautan bocor tidak dapat dipakai membanjiri server.
+  const rate = await hitLimit(`unduh/${ip}`, 120, 3600);
+  if (rate.limited) {
+    return new Response("Terlalu banyak unduhan dalam satu jam. Coba lagi nanti.", {
+      status: 429,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Retry-After": String(rate.retryAfterSeconds), "Cache-Control": "no-store" },
+    });
+  }
+  await audit("unduh.laporan", { format, ip, filter: url.searchParams.get("versi") ?? "semua" });
 
   try {
     const records = await loadResponses();
@@ -67,7 +84,8 @@ export async function GET(request: Request, ctx: RouteContext<"/api/laporan/[for
       headers: {
         "Content-Type": types[format as Format],
         "Content-Disposition": `attachment; filename="${name}"`,
-        "Cache-Control": "no-store",
+        "Cache-Control": "no-store, private",
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (error) {

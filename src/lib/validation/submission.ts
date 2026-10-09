@@ -12,8 +12,10 @@ const answerValue = z.union([
 export const submissionSchema = z
   .object({
     formVersion: z.enum(["CD", "DC"]),
-    startedAt: z.iso.datetime(),
-    answers: z.record(z.string().max(40), answerValue),
+    /** Hanya informatif; waktu mulai resmi berasal dari token formulir server. */
+    startedAt: z.iso.datetime().optional(),
+    formToken: z.string().max(600).optional(),
+    answers: z.record(z.string().max(40), answerValue).refine((a) => Object.keys(a).length <= 120, "Terlalu banyak kolom."),
   })
   .strict();
 
@@ -65,8 +67,11 @@ export type SubmissionCheck =
 /**
  * Validasi penuh di sisi server: seluruh bagian harus lengkap dan responden
  * harus memenuhi kriteria kelayakan yang sama dengan alur di peramban.
+ *
+ * @param serverStartedAt Waktu mulai dari token formulir server. Bila diberikan,
+ *   waktu mulai dari klien diabaikan sehingga durasi tidak dapat dipalsukan.
  */
-export function checkSubmission(input: unknown, now: Date = new Date()): SubmissionCheck {
+export function checkSubmission(input: unknown, now: Date = new Date(), serverStartedAt?: Date): SubmissionCheck {
   const parsed = submissionSchema.safeParse(input);
   if (!parsed.success) return { ok: false, reason: "Format data tidak dikenali." };
 
@@ -86,9 +91,9 @@ export function checkSubmission(input: unknown, now: Date = new Date()): Submiss
     return { ok: false, reason: "Jawaban tidak memenuhi kriteria kelayakan." };
   }
 
-  const started = new Date(startedAt);
+  const started = serverStartedAt ?? (startedAt ? new Date(startedAt) : new Date(NaN));
   const durationSeconds = Math.round((now.getTime() - started.getTime()) / 1000);
-  if (!Number.isFinite(durationSeconds) || durationSeconds < 0 || durationSeconds > 60 * 60 * 24 * 7) {
+  if (!Number.isFinite(durationSeconds) || durationSeconds < 0 || durationSeconds > 60 * 60 * 24 * 14) {
     return { ok: false, reason: "Waktu mulai pengisian tidak valid." };
   }
 

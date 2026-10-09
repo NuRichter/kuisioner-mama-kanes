@@ -10,6 +10,8 @@ export interface QuestionnaireState {
   startedAt: string | null;
   status: "active" | "stopped" | "submitted";
   stopReason: StopReason | null;
+  /** Token formulir dari server (waktu mulai resmi dan identitas kiriman). */
+  formToken?: string;
   /** Hanya untuk sesi berjalan: jawaban baru dipulihkan dari perangkat. Tidak disimpan. */
   restored?: boolean;
 }
@@ -21,6 +23,7 @@ export type Action =
   | { type: "goto"; step: StepId }
   | { type: "resume" }
   | { type: "submitted" }
+  | { type: "token"; token: string }
   | { type: "restore"; state: QuestionnaireState }
   | { type: "reset"; version: FormVersion };
 
@@ -74,6 +77,8 @@ export function reducer(state: QuestionnaireState, action: Action): Questionnair
       return { ...state, status: "active", stopReason: null };
     case "submitted":
       return { ...state, status: "submitted" };
+    case "token":
+      return { ...state, formToken: action.token };
     case "restore":
       return {
         ...action.state,
@@ -112,6 +117,7 @@ export function parseStoredState(raw: string | null): QuestionnaireState | null 
       startedAt: typeof s.startedAt === "string" ? s.startedAt : null,
       status: s.status,
       stopReason: s.stopReason ?? null,
+      formToken: typeof s.formToken === "string" && s.formToken.length < 600 ? s.formToken : undefined,
     };
   } catch {
     return null;
