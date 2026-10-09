@@ -7,6 +7,8 @@ test.describe("dasbor peneliti", () => {
   test.skip(!password, "Kata sandi peneliti produksi tidak diberikan (E2E_RESEARCHER_PASSWORD).");
 
   test("login, dasbor, dan seluruh unduhan", async ({ page }) => {
+    // Lima laporan (termasuk PDF dan PPT) dibuat di server, kadang pada fungsi yang baru menyala.
+    test.setTimeout(90_000);
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
 

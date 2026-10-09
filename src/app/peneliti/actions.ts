@@ -59,8 +59,7 @@ export async function login(prev: LoginState, formData: FormData): Promise<Login
     return { error: "Kata sandi tidak cocok. Periksa huruf besar dan kecil, lalu coba lagi.", attempt };
   }
 
-  await resetLimit(ipKey);
-  await audit("login.berhasil", { ip: ipHash });
+  await Promise.all([resetLimit(ipKey), audit("login.berhasil", { ip: ipHash })]);
   (await cookies()).set(SESSION_COOKIE, createSessionToken(), sessionCookieOptions);
   redirect("/peneliti");
 }

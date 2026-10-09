@@ -37,6 +37,9 @@ export async function GET(request: Request, ctx: RouteContext<"/api/laporan/[for
   const options = parseOptions(url.searchParams);
 
   // Laporan PDF/PPT berat untuk dibuat: batasi agar tautan bocor tidak dapat dipakai membanjiri server.
+  // Periksa batas laju sambil memuat data agar tidak menambah waktu tunggu.
+  const recordsPromise = loadResponses();
+  recordsPromise.catch(() => undefined);
   const rate = await hitLimit(`unduh/${ip}`, 120, 3600);
   if (rate.limited) {
     return new Response("Terlalu banyak unduhan dalam satu jam. Coba lagi nanti.", {
@@ -47,7 +50,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/laporan/[for
   await audit("unduh.laporan", { format, ip, filter: url.searchParams.get("versi") ?? "semua" });
 
   try {
-    const records = await loadResponses();
+    const records = await recordsPromise;
     const a = analyze(records, options);
     const stamp = new Date().toISOString().slice(0, 10);
     let body: Buffer | string;
